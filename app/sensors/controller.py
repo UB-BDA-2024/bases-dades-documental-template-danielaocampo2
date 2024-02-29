@@ -58,8 +58,20 @@ def create_sensor(sensor: schemas.SensorCreate, db: Session = Depends(get_db), m
     db_sensor = repository.get_sensor_by_name(db, sensor.name)
     if db_sensor:
         raise HTTPException(status_code=400, detail="Sensor with same name already registered")
-    raise HTTPException(status_code=404, detail="Not implemented")
-#    return repository.create_sensor(db=db, sensor=sensor)
+    newSensor= repository.create_sensor(db=db, sensor=sensor)
+    sensor_document = {
+        "id_sensor": newSensor.id,
+        "longitude": sensor.longitude,
+        "latitude": sensor.latitude,
+        "type": sensor.type,
+        "mac_address": sensor.mac_address,
+        "manufacturer": sensor.manufacturer,
+        "model": sensor.model,
+        "serie_number": sensor.serie_number,
+        "firmware_version": sensor.firmware_version
+    }
+    repository.insertMongodb(mongodb_client=mongodb_client, sensor_document=sensor_document)
+    return newSensor
 
 # 🙋🏽‍♀️ Add here the route to get a sensor by id
 @router.get("/{sensor_id}")

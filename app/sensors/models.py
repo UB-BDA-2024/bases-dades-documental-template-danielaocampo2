@@ -9,5 +9,5 @@ class Sensor(Base):
     joined_at = Column(DateTime, default=datetime.datetime.utcnow)
     #type = Column(String, default="Dummy")
     #mac_address = Column(String,unique=True, index=True)
-    #latitude = Column(Float)
-    #longitude = Column(Float)
+    #latitude = Column(Float)  
+    #longitude = Column(Float)  

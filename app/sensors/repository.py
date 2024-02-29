@@ -1,6 +1,9 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from app.redis_client import RedisClient
+from app.mongodb_client import MongoDBClient
+
 
 from . import models, schemas
 
@@ -14,17 +17,27 @@ def get_sensors(db: Session, skip: int = 0, limit: int = 100) -> List[models.Sen
     return db.query(models.Sensor).offset(skip).limit(limit).all()
 
 def create_sensor(db: Session, sensor: schemas.SensorCreate) -> models.Sensor:
-    db_sensor = models.Sensor(name=sensor.name, latitude=sensor.latitude, longitude=sensor.longitude)
+    db_sensor = models.Sensor(name=sensor.name)
     db.add(db_sensor)
     db.commit()
     db.refresh(db_sensor)
     return db_sensor
 
-def record_data(redis: Session, sensor_id: int, data: schemas.SensorData) -> schemas.Sensor:
+def insertMongodb(mongodb_client: MongoDBClient, sensor_document):
+    try:
+        mongodb_client.getDatabase('P2Documentales')
+        mongodb_client.getCollection('sensors')
+        mongodb_client.collection.insert_one(sensor_document)
+    except Exception as e:
+        # Aquí podrías manejar o registrar la excepción específica
+        print(f"Error al insertar en MongoDB: {e}")
+        raise HTTPException(status_code=500, detail="Failed to insert sensor data into MongoDB")
+
+def record_data(redis: RedisClient, sensor_id: int, data: schemas.SensorData) -> schemas.Sensor:
     db_sensordata = data
     return db_sensordata
 
-def get_data(redis: Session, sensor_id: int, data: schemas.SensorData) -> schemas.Sensor:
+def get_data(redis: RedisClient, sensor_id: int, data: schemas.SensorData) -> schemas.Sensor:
     db_sensordata = data
     return db_sensordata
 
@@ -35,3 +48,4 @@ def delete_sensor(db: Session, sensor_id: int):
     db.delete(db_sensor)
     db.commit()
     return db_sensor
+
