@@ -12,8 +12,8 @@ client = TestClient(app)
 def clear_dbs():
      from app.database import SessionLocal, engine
      from app.sensors import models
-     models.Base.metadata.drop_all(bind=engine)
-     models.Base.metadata.create_all(bind=engine)
+    #  models.Base.metadata.drop_all(bind=engine)
+    #  models.Base.metadata.create_all(bind=engine)
      redis = RedisClient(host="redis")
      redis.clearAll()
      redis.close()
