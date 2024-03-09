@@ -40,7 +40,7 @@ router = APIRouter(
 
 
 # 🙋🏽‍♀️ Add here the route to get a list of sensors near to a given location
-@router.get("/near")
+@router.get("/near" ,summary="Get sensors near a location", description="Returns a list of sensors located within a specified radius of a given latitude and longitude.")
 def get_sensors_near(latitude: float, longitude: float,radius: int, db: Session = Depends(get_db), mongodb_client: MongoDBClient = Depends(get_mongodb_client), redis_client: RedisClient = Depends(get_redis_client)):
     return repository.get_sensors_near(mongodb_client=mongodb_client,  db=db, redis=redis_client,  latitude=latitude, longitude=longitude, radius=radius)
 
@@ -60,13 +60,13 @@ def get_data(sensor_id: int, db: Session = Depends(get_db) ,redis_client: RedisC
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) 
 
 # 🙋🏽‍♀️ Add here the route to get all sensors
-@router.get("")
+@router.get("", summary="Get all sensors", description="Retrieve a list of all registered sensors.")
 def get_sensors(db: Session = Depends(get_db)):
     return repository.get_sensors(db)
 
 
 # 🙋🏽‍♀️ Add here the route to create a sensor
-@router.post("")
+@router.post("", summary="Create a new sensor", description="Register a new sensor in the database and its corresponding details in MongoDB and postgreSQL.")
 def create_sensor(sensor: schemas.SensorCreate, db: Session = Depends(get_db), mongodb_client: MongoDBClient = Depends(get_mongodb_client)):
     db_sensor = repository.get_sensor_by_name(db, sensor.name)
     if db_sensor:
@@ -89,7 +89,7 @@ def create_sensor(sensor: schemas.SensorCreate, db: Session = Depends(get_db), m
     return newSensor
 
 # 🙋🏽‍♀️ Add here the route to get a sensor by id
-@router.get("/{sensor_id}")
+@router.get("/{sensor_id}", summary="Get sensor by ID", description="Retrieve detailed information of a sensor by its unique ID.")
 def get_sensor(sensor_id: int, db: Session = Depends(get_db), mongodb_client: MongoDBClient = Depends(get_mongodb_client)):
     db_sensor = repository.get_sensor(db, sensor_id)
     if db_sensor is None:
@@ -99,7 +99,7 @@ def get_sensor(sensor_id: int, db: Session = Depends(get_db), mongodb_client: Mo
 
 
 # 🙋🏽‍♀️ Add here the route to update a sensor
-@router.post("/{sensor_id}/data")
+@router.post("/{sensor_id}/data", summary="Record sensor data in Redis", description="Stores the received sensor data in Redis for a specific sensor identified by its ID. This endpoint is designed to quickly update and retrieve sensor data using Redis as a fast, in-memory data store.")
 def record_data(sensor_id: int, data: schemas.SensorData,db: Session = Depends(get_db) ,redis_client: RedisClient = Depends(get_redis_client)):
     try:
         repository.get_sensor(db, sensor_id)
@@ -112,7 +112,7 @@ def record_data(sensor_id: int, data: schemas.SensorData,db: Session = Depends(g
 
     
 # 🙋🏽‍♀️ Add here the route to delete a sensor
-@router.delete("/{sensor_id}")
+@router.delete("/{sensor_id}", summary="Delete a sensor", description="Remove a sensor from the database, along with its data in Redis, MongoDB and postgreSQL.")
 def delete_sensor(sensor_id: int, db: Session = Depends(get_db), mongodb_client: MongoDBClient = Depends(get_mongodb_client), redis_client: RedisClient = Depends(get_redis_client)):
     db_sensor = repository.get_sensor(db, sensor_id)
     if db_sensor is None:

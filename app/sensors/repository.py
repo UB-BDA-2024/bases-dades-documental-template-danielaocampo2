@@ -34,7 +34,6 @@ def insertMongodb(mongodb_client: MongoDBClient, sensor_document):
         mongodb_client.getCollection('sensors')
         mongodb_client.collection.insert_one(sensor_document)
     except Exception as e:
-        # Aquí podrías manejar o registrar la excepción específica
         print(f"Error al insertar en MongoDB: {e}")
         raise HTTPException(status_code=500, detail="Failed to insert sensor data into MongoDB")
 
@@ -79,7 +78,9 @@ def get_data(redis: RedisClient, sensor_id: int) -> schemas.Sensor:
 def get_sensors_near(mongodb_client: MongoDBClient,  db:Session, redis:RedisClient,  latitude: float, longitude: float, radius: int):
     mongodb_client.getDatabase("P2Documentales")
     collection = mongodb_client.getCollection("sensors")
+    # 2dsphere index on the "location" field to enable geospatial queries
     collection.create_index([("location", "2dsphere")])
+    # Construct a GeoJSON query to find sensors near a given point within a specified radius
     geoJSON = {
         "location": {
             "$near": {
@@ -92,13 +93,15 @@ def get_sensors_near(mongodb_client: MongoDBClient,  db:Session, redis:RedisClie
             }
         }
     }
-    result = mongodb_client.findByQuery(geoJSON)
-    nearby_sensors = list(result)
+    # Execute the query to find nearby sensors and convert into a list of dictionaries
+    nearby_sensors = list(mongodb_client.findByQuery(geoJSON))
     sensors = []
+    # Iterate through each sensor found in the MongoDB query
     for doc in nearby_sensors:
         doc["_id"] = str(doc["_id"])
         sensor = get_sensor(db=db, sensor_id=doc["id_sensor"]).__dict__
         sensorRedis= get_data(redis, doc["id_sensor"])
+        # If sensor data is successfully retrieved, combine it with the Redis data
         if sensor is not None:
             sensor = {**sensor, **sensorRedis} 
             sensors.append(sensor)        
