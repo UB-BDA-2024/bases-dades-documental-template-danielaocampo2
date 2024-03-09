@@ -56,6 +56,15 @@ def delete_sensor(db: Session, sensor_id: int):
     db.commit()
     return db_sensor
 
+def deleteSensorRedis(redis: RedisClient, sensor_id: int):
+    redis_key = f"sensor:{sensor_id}:data"
+    redis.delete(redis_key)
+    
+def deleteSensorMongodb(mongodb_client: MongoDBClient, sensor_id: int):
+    mongodb_client.getDatabase('P2Documentales')
+    mongodb_client.getCollection('sensors')
+    mongodb_client.collection.delete_one({"id_sensor": sensor_id})
+
 #change
 def get_data(redis: RedisClient, sensor_id: int) -> schemas.Sensor:
     redis_key = f"sensor:{sensor_id}:data"
@@ -64,3 +73,35 @@ def get_data(redis: RedisClient, sensor_id: int) -> schemas.Sensor:
         raise HTTPException(status_code=404, detail="Sensor not found")
     stored_data = json.loads(stored_data.decode("utf-8"))
     return stored_data
+
+
+
+def get_sensors_near(mongodb_client: MongoDBClient,  db:Session, redis:RedisClient,  latitude: float, longitude: float, radius: int):
+    mongodb_client.getDatabase("P2Documentales")
+    collection = mongodb_client.getCollection("sensors")
+    collection.create_index([("location", "2dsphere")])
+    geoJSON = {
+        "location": {
+            "$near": {
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [longitude, latitude],
+                    "$maxDistance": radius
+                },
+                
+            }
+        }
+    }
+    result = mongodb_client.findByQuery(geoJSON)
+    nearby_sensors = list(result)
+    sensors = []
+    for doc in nearby_sensors:
+        doc["_id"] = str(doc["_id"])
+        sensor = get_sensor(db=db, sensor_id=doc["id_sensor"]).__dict__
+        sensorRedis= get_data(redis, doc["id_sensor"])
+        if sensor is not None:
+            sensor = {**sensor, **sensorRedis} 
+            sensors.append(sensor)        
+    if sensors is not None:
+        return sensors
+    return []

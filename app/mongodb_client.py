@@ -24,5 +24,8 @@ class MongoDBClient:
     
     def clearDb(self,database):
         self.client.drop_database(database)
+    
+    def findByQuery(self, query={}):
+        return self.collection.find(query)
 
 
